@@ -1,21 +1,25 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-# Cài đặt build tools cho native SQLite addon
+# Install native compilation dependencies for SQLite
 RUN apt-get update && apt-get install -y python3 make g++ --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
+# Copy package manifests first for optimal caching
 COPY server/package*.json ./server/
 
+# Install server production dependencies
 WORKDIR /app/server
-RUN npm install --production --build-from-source=better-sqlite3
+RUN npm install --omit=dev
 
-# Copy application files
+# Copy application source files
 WORKDIR /app
-COPY server ./server
+COPY server/src ./server/src
 COPY client ./client
 COPY uploads ./uploads
+
+# Ensure upload directory exists
+RUN mkdir -p /app/server/uploads/documents
 
 WORKDIR /app/server
 
