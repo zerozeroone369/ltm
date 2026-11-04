@@ -1,0 +1,19 @@
+{
+  "name": "unilife-dau",
+  "version": "1.0.0",
+  "description": "Mạng Xã Hội Sinh Viên Đại Học Kiến Trúc Đà Nẵng (DAU)",
+  "main": "server/src/server.js",
+  "scripts": {
+    "start": "cd server && npm start",
+    "build": "cd server && npm install",
+    "test": "cd server && npm test"
+  },
+  "keywords": [
+    "dau",
+    "social-network",
+    "student",
+    "network-programming"
+  ],
+  "author": "UniLife DAU Team",
+  "license": "ISC"
+}
