@@ -194,5 +194,48 @@ router.post('/:id/rate', authenticateToken, (req, res) => {
   }
 });
 
+// GET /api/documents/:id/ratings - Xem danh sách đánh giá của tài liệu
+router.get('/:id/ratings', authenticateToken, (req, res) => {
+  try {
+    const ratings = db.prepare(`
+      SELECT dr.*, u.full_name, u.student_code, u.avatar_url
+      FROM document_ratings dr
+      JOIN users u ON dr.user_id = u.user_id
+      WHERE dr.document_id = ?
+      ORDER BY dr.created_at DESC
+    `).all(req.params.id);
+
+    res.json({ success: true, data: ratings });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/documents/:id - Xóa tài liệu (chủ sở hữu hoặc Admin)
+router.delete('/:id', authenticateToken, (req, res) => {
+  try {
+    const doc = db.prepare('SELECT uploader_id, file_path FROM documents WHERE document_id = ?').get(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: 'Tài liệu không tồn tại' });
+
+    if (doc.uploader_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa tài liệu này' });
+    }
+
+    db.prepare('UPDATE documents SET status = "DELETED" WHERE document_id = ?').run(req.params.id);
+
+    // Optional physical file deletion
+    try {
+      const fullPath = path.join(uploadDirectory, doc.file_path);
+      if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+    } catch (e) {
+      console.warn('Physical file delete warning:', e.message);
+    }
+
+    res.json({ success: true, message: 'Đã xóa tài liệu thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 

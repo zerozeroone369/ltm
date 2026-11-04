@@ -105,11 +105,13 @@
           </div>
 
           <!-- User Info Pill & Logout -->
-          <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200">
-            <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-8 h-8 rounded-full border border-orange-500 object-cover bg-slate-100">
-            <div class="hidden sm:block text-left leading-tight">
-              <div id="userName" class="text-xs font-bold text-slate-800">Sinh Viên</div>
-              <div id="userClass" class="text-[10px] text-orange-600 font-semibold">22CNTT1</div>
+          <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div onclick="openProfileModal()" title="Xem và sửa hồ sơ cá nhân / Đổi mật khẩu" class="flex items-center gap-2.5 cursor-pointer hover:bg-slate-100 py-1 px-2 rounded-xl transition">
+              <img id="userAvatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-8 h-8 rounded-full border border-orange-500 object-cover bg-slate-100">
+              <div class="hidden sm:block text-left leading-tight">
+                <div id="userName" class="text-xs font-bold text-slate-800 flex items-center gap-1">Sinh Viên <i class="fa-solid fa-gear text-[10px] text-slate-400"></i></div>
+                <div id="userClass" class="text-[10px] text-orange-600 font-semibold">22CNTT1</div>
+              </div>
             </div>
             <button onclick="logout()" title="Đăng xuất" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition ml-1">
               <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -222,18 +224,32 @@
           </div>
         </div>
 
-        <!-- Feed Filter Tabs -->
-        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 text-xs">
-          <div class="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0" id="feedCategoryTabs">
-            <button onclick="filterFeedCategory('ALL')" class="cat-pill px-3 py-1.5 rounded-lg font-bold bg-orange-600 text-white">Tất cả</button>
-            <button onclick="filterFeedCategory('STUDY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">📐 Học tập & Đồ án</button>
-            <button onclick="filterFeedCategory('COMMUNITY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">💬 Cộng đồng</button>
-            <button onclick="filterFeedCategory('ACTIVITY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">🏆 Hoạt động</button>
-            <button onclick="filterFeedCategory('OPPORTUNITY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">💼 Cơ hội việc làm</button>
+        <!-- Feed Filter Tabs (Category & Community Scope) -->
+        <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 text-xs space-y-2.5">
+          <!-- Hàng 1: Chuyên mục (Smart Feed) -->
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0" id="feedCategoryTabs">
+              <span class="text-[11px] font-bold text-slate-400 uppercase mr-1">Chủ đề:</span>
+              <button onclick="filterFeedCategory('ALL')" class="cat-pill px-3 py-1.5 rounded-lg font-bold bg-orange-600 text-white">Tất cả</button>
+              <button onclick="filterFeedCategory('STUDY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">📐 Học tập & Đồ án</button>
+              <button onclick="filterFeedCategory('COMMUNITY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">💬 Cộng đồng</button>
+              <button onclick="filterFeedCategory('ACTIVITY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">🏆 Hoạt động</button>
+              <button onclick="filterFeedCategory('OPPORTUNITY')" class="cat-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">💼 Cơ hội</button>
+            </div>
+            
+            <div class="text-[11px] text-slate-500 font-medium">
+              <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Ưu tiên: Lớp → Khóa → Khoa → Trường
+            </div>
           </div>
-          
-          <div class="text-[11px] text-slate-500 font-medium">
-            <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Ưu tiên: Lớp → Khóa → Khoa → Trường DAU
+
+          <!-- Hàng 2: Không gian cộng đồng (Lớp -> Khóa -> Khoa -> Trường) -->
+          <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-1 text-[11px]" id="feedScopeTabs">
+            <span class="font-bold text-slate-400 uppercase mr-1">Không gian:</span>
+            <button onclick="filterFeedScope('ALL')" class="scope-pill px-2.5 py-1 rounded-md font-bold bg-slate-800 text-white">Tất cả</button>
+            <button onclick="filterFeedScope('CLASS')" class="scope-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:bg-slate-100">🏫 Lớp của tôi</button>
+            <button onclick="filterFeedScope('COURSE')" class="scope-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:bg-slate-100">🎓 Khóa tuyển sinh</button>
+            <button onclick="filterFeedScope('FACULTY')" class="scope-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:bg-slate-100">🏛️ Khoa đào tạo</button>
+            <button onclick="filterFeedScope('SCHOOL')" class="scope-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:bg-slate-100">🌐 Toàn trường DAU</button>
           </div>
         </div>
 
@@ -248,7 +264,7 @@
       <section id="tab-documents" class="hidden space-y-5">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80">
           <div>
-            <h2 class="text-lg font-bold text-slate-800">Kho Tài Liệu & Đề Thi Sinh Viên DAU</h2>
+            <h2 class="text-lg font-bold text-slate-800">Kho Tài Liệu & Đồ Án Sinh Viên DAU</h2>
             <p class="text-xs text-slate-500">Giáo trình, slide bài giảng, đề thi và đồ án môn học các khoa</p>
           </div>
           <button onclick="openUploadModal()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
@@ -257,10 +273,15 @@
         </div>
 
         <!-- Documents Filter & Search -->
-        <div class="flex flex-wrap items-center gap-3">
-          <input type="text" id="docSearchInput" oninput="loadDocuments()" placeholder="Tìm kiếm tên tài liệu, đề thi..." class="px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs flex-1 min-w-[200px] focus:outline-none focus:border-orange-500">
-          <select id="docSubjectSelect" onchange="loadDocuments()" class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none">
+        <div class="flex flex-wrap items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80">
+          <input type="text" id="docSearchInput" oninput="loadDocuments()" placeholder="Tìm kiếm tên tài liệu, đề thi, tác giả..." class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs flex-1 min-w-[200px] focus:outline-none focus:border-orange-500">
+          <select id="docSubjectSelect" onchange="loadDocuments()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none">
             <option value="">Tất cả môn học</option>
+          </select>
+          <select id="docSortSelect" onchange="loadDocuments()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none">
+            <option value="NEWEST">Mới nhất</option>
+            <option value="DOWNLOADS">Nhiều lượt tải nhất</option>
+            <option value="RATING">Đánh giá cao nhất</option>
           </select>
         </div>
 
@@ -281,6 +302,19 @@
           </button>
         </div>
 
+        <!-- QA Search & Status Filter -->
+        <div class="flex flex-wrap items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80">
+          <input type="text" id="qaSearchInput" oninput="loadQA()" placeholder="Tìm câu hỏi, thắc mắc đồ án..." class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs flex-1 min-w-[180px] focus:outline-none focus:border-amber-500">
+          <select id="qaSubjectFilter" onchange="loadQA()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none">
+            <option value="">Tất cả môn học</option>
+          </select>
+          <div class="flex items-center gap-1 text-xs" id="qaFilterTabs">
+            <button onclick="filterQAStatus('ALL')" class="qa-pill px-3 py-1.5 rounded-lg font-bold bg-amber-600 text-white">Tất cả</button>
+            <button onclick="filterQAStatus('RESOLVED')" class="qa-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">✓ Đã giải quyết</button>
+            <button onclick="filterQAStatus('UNRESOLVED')" class="qa-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">⏳ Chưa có đáp án</button>
+          </div>
+        </div>
+
         <div id="qaListContainer" class="space-y-4">
           <!-- Dynamic Q&A -->
         </div>
@@ -298,6 +332,19 @@
           </button>
         </div>
 
+        <!-- Groups Filter -->
+        <div class="flex flex-wrap items-center gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80">
+          <input type="text" id="grpSearchInput" oninput="loadGroups()" placeholder="Tìm theo tên nhóm, mục tiêu..." class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs flex-1 min-w-[180px] focus:outline-none focus:border-indigo-500">
+          <select id="grpSubjectFilter" onchange="loadGroups()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none">
+            <option value="">Tất cả môn học</option>
+          </select>
+          <div class="flex items-center gap-1 text-xs" id="groupFilterTabs">
+            <button onclick="filterGroupStatus('ALL')" class="grp-pill px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white">Tất cả</button>
+            <button onclick="filterGroupStatus('RECRUITING')" class="grp-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">Đang tuyển</button>
+            <button onclick="filterGroupStatus('MINE')" class="grp-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">Nhóm của tôi</button>
+          </div>
+        </div>
+
         <div id="groupsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Dynamic Study Groups -->
         </div>
@@ -305,10 +352,25 @@
 
       <!-- ==================== TAB 5: CAMPUS & ĐỜI SỐNG ==================== -->
       <section id="tab-campus" class="hidden space-y-5">
-        <div class="bg-gradient-to-r from-orange-700 to-amber-600 rounded-2xl p-6 text-white shadow-lg">
-          <span class="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold uppercase tracking-wider">DAU Campus Bulletin</span>
-          <h2 class="text-xl sm:text-2xl font-bold mt-2">Bảng Tin Đời Sống & Thông Báo Nhà Trường</h2>
-          <p class="text-xs sm:text-sm text-white/80 mt-1">Thông báo đào tạo, lịch thi, học bổng, việc làm và câu lạc bộ ĐH Kiến Trúc Đà Nẵng.</p>
+        <div class="bg-gradient-to-r from-orange-700 to-amber-600 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <span class="px-2.5 py-1 bg-white/20 rounded-full text-xs font-semibold uppercase tracking-wider">DAU Campus Bulletin</span>
+            <h2 class="text-xl sm:text-2xl font-bold mt-2">Bảng Tin Đời Sống & Thông Báo Nhà Trường</h2>
+            <p class="text-xs sm:text-sm text-white/80 mt-1">Thông báo đào tạo, lịch thi, học bổng, việc làm và câu lạc bộ ĐH Kiến Trúc Đà Nẵng.</p>
+          </div>
+          <button id="adminAddCampusBtn" onclick="openCampusModal()" class="hidden px-4 py-2 bg-white text-orange-700 hover:bg-orange-50 text-xs font-bold rounded-xl shadow transition shrink-0 flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Đăng tin Campus
+          </button>
+        </div>
+
+        <!-- Campus Type Filter Pills -->
+        <div class="flex items-center gap-1 overflow-x-auto bg-white p-3 rounded-2xl border border-slate-200/80 text-xs" id="campusTypeTabs">
+          <button onclick="filterCampusType('ALL')" class="campus-pill px-3 py-1.5 rounded-lg font-bold bg-orange-600 text-white">Tất cả</button>
+          <button onclick="filterCampusType('ANNOUNCEMENT')" class="campus-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">📢 Thông báo</button>
+          <button onclick="filterCampusType('EVENT')" class="campus-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">🎉 Sự kiện</button>
+          <button onclick="filterCampusType('SCHOLARSHIP')" class="campus-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">🎓 Học bổng</button>
+          <button onclick="filterCampusType('CLUB')" class="campus-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">🎨 CLB & Đoàn Hội</button>
+          <button onclick="filterCampusType('CAREER')" class="campus-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100">💼 Việc làm</button>
         </div>
 
         <div id="campusListContainer" class="space-y-4">
@@ -322,19 +384,19 @@
           <h2 class="text-lg font-bold text-red-600 flex items-center gap-2">
             <i class="fa-solid fa-shield-halved"></i> Trung Tâm Quản Trị Hệ Thống ĐH Kiến Trúc Đà Nẵng
           </h2>
-          <p class="text-xs text-slate-500 mt-1">Dành cho Ban Quản trị xử lý báo cáo vi phạm và quản lý sinh viên</p>
+          <p class="text-xs text-slate-500 mt-1">Dành cho Ban Quản trị xử lý báo cáo vi phạm, quản lý sinh viên và cấu trúc đào tạo</p>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div class="text-slate-400 text-[11px] font-semibold">Sinh Viên Đã Đăng Ký</div>
+              <div class="text-slate-400 text-[11px] font-semibold">Sinh Viên Thật Đã ĐK</div>
               <div id="adminStatUsers" class="text-xl font-bold text-slate-800">--</div>
             </div>
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div class="text-slate-400 text-[11px] font-semibold">Bài Viết</div>
+              <div class="text-slate-400 text-[11px] font-semibold">Bài Viết & Tài Liệu</div>
               <div id="adminStatPosts" class="text-xl font-bold text-slate-800">--</div>
             </div>
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-              <div class="text-slate-400 text-[11px] font-semibold">Báo Cáo Vi Phạm</div>
+              <div class="text-slate-400 text-[11px] font-semibold">Báo Cáo Chờ Xử Lý</div>
               <div id="adminStatReports" class="text-xl font-bold text-red-600">--</div>
             </div>
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -344,8 +406,41 @@
           </div>
         </div>
 
+        <!-- Structure Stats Card DAU -->
         <div class="bg-white rounded-2xl border border-slate-200/80 p-5">
-          <h3 class="text-sm font-bold text-slate-800 mb-3">Danh sách Báo cáo Vi phạm chờ xử lý</h3>
+          <h3 class="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-sitemap text-orange-600"></i> Cấu trúc Đào tạo ĐH Kiến Trúc Đà Nẵng (DAU)
+          </h3>
+          <p class="text-xs text-slate-500 mb-3">Hệ thống phân cấp chuẩn: 9 Khoa - 12 Ngành - 21 Khóa (K06-K26) - 252 Lớp sinh viên</p>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+            <div class="bg-orange-50 p-2.5 rounded-xl border border-orange-100">
+              <div class="font-bold text-orange-700 text-base">9</div>
+              <div class="text-[10px] text-orange-600">Khoa đào tạo</div>
+            </div>
+            <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-100">
+              <div class="font-bold text-amber-700 text-base">12</div>
+              <div class="text-[10px] text-amber-600">Ngành học</div>
+            </div>
+            <div class="bg-blue-50 p-2.5 rounded-xl border border-blue-100">
+              <div class="font-bold text-blue-700 text-base">21</div>
+              <div class="text-[10px] text-blue-600">Khóa (K06-K26)</div>
+            </div>
+            <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+              <div class="font-bold text-emerald-700 text-base">252</div>
+              <div class="text-[10px] text-emerald-600">Lớp sinh hoạt</div>
+            </div>
+            <div class="bg-purple-50 p-2.5 rounded-xl border border-purple-100">
+              <div class="font-bold text-purple-700 text-base">100%</div>
+              <div class="text-[10px] text-purple-600">Không có nick ảo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table 1: Reports -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-5">
+          <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-flag text-red-500"></i> Danh sách Báo cáo Vi phạm chờ xử lý
+          </h3>
           <div class="overflow-x-auto">
             <table class="w-full text-xs text-left">
               <thead class="text-slate-400 uppercase bg-slate-50 border-b border-slate-100">
@@ -358,6 +453,30 @@
                 </tr>
               </thead>
               <tbody id="adminReportsTableBody" class="divide-y divide-slate-100">
+                <!-- Dynamically filled -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Table 2: User Accounts Management -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-5">
+          <h3 class="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-users-gear text-slate-600"></i> Quản lý Tài khoản Sinh viên
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="text-slate-400 uppercase bg-slate-50 border-b border-slate-100">
+                <tr>
+                  <th class="py-2.5 px-3">Họ và tên</th>
+                  <th class="py-2.5 px-3">MSSV</th>
+                  <th class="py-2.5 px-3">Lớp</th>
+                  <th class="py-2.5 px-3">Vai trò</th>
+                  <th class="py-2.5 px-3">Trạng thái</th>
+                  <th class="py-2.5 px-3 text-right">Khóa/Mở khóa</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody" class="divide-y divide-slate-100">
                 <!-- Dynamically filled -->
               </tbody>
             </table>
@@ -565,6 +684,287 @@
         <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
           <button type="button" onclick="closeAskModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Hủy</button>
           <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow">Đăng câu hỏi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1: HỒ SƠ SINH VIÊN & ĐỔI MẬT KHẨU ==================== -->
+  <div id="profileModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-4 my-8">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-id-card"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-base">Hồ Sơ Sinh Viên DAU</h3>
+            <p class="text-[11px] text-slate-500">Thông tin đào tạo & Thiết lập tài khoản cá nhân</p>
+          </div>
+        </div>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold">
+        <button id="profileTabInfoBtn" onclick="toggleProfileTab('info')" class="flex-1 py-2 rounded-lg bg-white text-orange-600 shadow-sm transition">Thông Tin Cá Nhân</button>
+        <button id="profileTabPasswordBtn" onclick="toggleProfileTab('password')" class="flex-1 py-2 rounded-lg text-slate-600 transition">Đổi Mật Khẩu</button>
+      </div>
+
+      <!-- Tab Content 1: Info -->
+      <form id="profileInfoForm" onsubmit="handleUpdateProfile(event)" class="space-y-3.5 text-xs">
+        <!-- Academic Summary (Readonly) -->
+        <div class="bg-orange-50/70 p-3.5 rounded-2xl border border-orange-100 text-xs space-y-1.5">
+          <div class="font-bold text-orange-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-university text-orange-600"></i>
+            <span>Trường Đại học Kiến trúc Đà Nẵng (DAU)</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
+            <div><span class="text-slate-400">Khoa:</span> <b id="profFaculty" class="text-slate-800">--</b></div>
+            <div><span class="text-slate-400">Khóa:</span> <b id="profCourse" class="text-slate-800">--</b></div>
+            <div><span class="text-slate-400">Lớp:</span> <b id="profClass" class="text-orange-600 font-bold">--</b></div>
+            <div><span class="text-slate-400">MSSV:</span> <b id="profCode" class="text-slate-800">--</b></div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Họ và tên *</label>
+          <input type="text" id="profFullName" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Số điện thoại liên hệ</label>
+          <input type="tel" id="profPhone" placeholder="0905xxxxxx" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Giới thiệu bản thân (Bio)</label>
+          <textarea id="profBio" rows="2" placeholder="Sở thích, chuyên môn đồ án, phần mềm thành thạo..." class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeProfileModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Đóng</button>
+          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow">Lưu thay đổi</button>
+        </div>
+      </form>
+
+      <!-- Tab Content 2: Change Password -->
+      <form id="profilePasswordForm" onsubmit="handleChangePassword(event)" class="hidden space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mật khẩu hiện tại *</label>
+          <input type="password" id="profOldPassword" required placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mật khẩu mới (Tối thiểu 6 ký tự) *</label>
+          <input type="password" id="profNewPassword" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Xác nhận mật khẩu mới *</label>
+          <input type="password" id="profConfirmPassword" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none">
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeProfileModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow">Cập nhật mật khẩu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: SỬA BÀI VIẾT ==================== -->
+  <div id="editPostModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-800 text-base">Chỉnh Sửa Bài Viết</h3>
+        <button onclick="closeEditPostModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="editPostForm" onsubmit="handleUpdatePostSubmit(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="editPostId">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nội dung bài viết *</label>
+          <textarea id="editPostContent" rows="4" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-orange-500 focus:outline-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Chủ đề</label>
+            <select id="editPostCategory" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none">
+              <option value="STUDY">Học tập & Đồ án</option>
+              <option value="COMMUNITY">Cộng đồng sinh viên</option>
+              <option value="ACTIVITY">Hoạt động Đoàn - Hội</option>
+              <option value="OPPORTUNITY">Việc làm & Thực tập</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Phạm vi</label>
+            <select id="editPostScope" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none">
+              <option value="CLASS">Lớp của tôi</option>
+              <option value="FACULTY">Khoa đào tạo</option>
+              <option value="SCHOOL">Toàn trường DAU</option>
+            </select>
+          </div>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeEditPostModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow">Lưu chỉnh sửa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: BÁO CÁO VI PHẠM ==================== -->
+  <div id="reportModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-red-600 text-base flex items-center gap-2">
+          <i class="fa-solid fa-flag"></i> Báo Cáo Nội Dung Vi Phạm
+        </h3>
+        <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="reportForm" onsubmit="handleSendReportSubmit(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="reportTargetId">
+        <input type="hidden" id="reportTargetType" value="POST">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Lý do báo cáo vi phạm *</label>
+          <select id="reportReasonSelect" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-red-500 focus:outline-none">
+            <option value="Spam hoặc quảng cáo trái phép">Spam hoặc quảng cáo trái phép</option>
+            <option value="Ngôn từ đả kích, xúc phạm cá nhân">Ngôn từ đả kích, xúc phạm cá nhân</option>
+            <option value="Gian lận học tập, đề thi sai lệch">Gian lận học tập, đề thi sai lệch</option>
+            <option value="Nội dung không lành mạnh, vi phạm nội quy DAU">Nội dung không lành mạnh, vi phạm nội quy DAU</option>
+            <option value="Lý do khác">Lý do khác</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Mô tả chi tiết (Tùy chọn)</label>
+          <textarea id="reportDescription" rows="3" placeholder="Cung cấp thêm ngữ cảnh cho Ban Quản trị xử lý..." class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-red-500 focus:outline-none"></textarea>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeReportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow">Gửi báo cáo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: CHI TIẾT NHÓM HỌC, THÀNH VIÊN & DUYỆT ĐƠN ==================== -->
+  <div id="groupDetailModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="grpModalTitle" class="font-bold text-slate-800 text-base">Chi Tiết Nhóm Học Tập</h3>
+        <button onclick="closeGroupDetailModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <!-- Group Meta -->
+        <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-1">
+          <div id="grpModalSubject" class="font-bold text-indigo-700">Môn học</div>
+          <div id="grpModalGoal" class="text-slate-700">Mục tiêu</div>
+          <div class="flex flex-wrap gap-3 text-[11px] text-slate-500 pt-1">
+            <span id="grpModalSchedule"><i class="fa-regular fa-clock mr-1"></i>--</span>
+            <span id="grpModalLocation"><i class="fa-solid fa-location-dot mr-1"></i>--</span>
+          </div>
+        </div>
+
+        <!-- Members List -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-800">Danh sách thành viên (<span id="grpMembersCount">0</span>)</h4>
+          </div>
+          <div id="grpMembersList" class="space-y-2 max-h-48 overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl p-2"></div>
+        </div>
+
+        <!-- Pending Requests (Visible to Leader only) -->
+        <div id="grpRequestsSection" class="hidden pt-2 border-t border-slate-100">
+          <h4 class="font-bold text-amber-700 mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-user-clock"></i> Yêu cầu xin gia nhập chờ duyệt
+          </h4>
+          <div id="grpRequestsList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+        </div>
+
+        <!-- Action Footer -->
+        <div id="grpActionsFooter" class="pt-3 border-t border-slate-100 flex justify-between items-center">
+          <div id="grpLeaveOrDeleteBtnContainer"></div>
+          <button type="button" onclick="closeGroupDetailModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 5: XEM ĐÁNH GIÁ TÀI LIỆU ==================== -->
+  <div id="docRatingsModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-800 text-base">Đánh Giá & Nhận Xét Tài Liệu</h3>
+        <button onclick="closeDocRatingsModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="docRatingsContainer" class="max-h-72 overflow-y-auto space-y-2.5 text-xs">
+        <div class="text-center text-slate-400 py-4">Đang tải đánh giá...</div>
+      </div>
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button type="button" onclick="closeDocRatingsModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 6: ĐÁNH GIÁ SAO CHO TÀI LIỆU ==================== -->
+  <div id="rateDocModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-800 text-base">Đánh Giá Tài Liệu</h3>
+        <button onclick="closeRateDocModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="rateDocForm" onsubmit="handleSendRateSubmit(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="rateTargetDocId">
+        <div class="text-center py-2">
+          <label class="block font-semibold text-slate-700 mb-2">Chọn số sao đánh giá</label>
+          <div class="flex justify-center gap-2 text-2xl text-amber-400 cursor-pointer" id="starRatingSelector">
+            <i class="fa-solid fa-star star-btn" onclick="selectStar(1)"></i>
+            <i class="fa-solid fa-star star-btn" onclick="selectStar(2)"></i>
+            <i class="fa-solid fa-star star-btn" onclick="selectStar(3)"></i>
+            <i class="fa-solid fa-star star-btn" onclick="selectStar(4)"></i>
+            <i class="fa-solid fa-star star-btn" onclick="selectStar(5)"></i>
+          </div>
+          <input type="hidden" id="rateStarScore" value="5">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nhận xét tóm tắt (Tùy chọn)</label>
+          <textarea id="rateDocComment" rows="2" placeholder="Tài liệu rất sát đề thi, trình bày rõ ràng..." class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none"></textarea>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeRateDocModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow">Gửi đánh giá</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 7: ADMIN ĐĂNG / SỬA TIN CAMPUS ==================== -->
+  <div id="campusModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-orange-700 text-base flex items-center gap-2">
+          <i class="fa-solid fa-bullhorn"></i> Đăng Tin Campus DAU (Ban Quản Trị)
+        </h3>
+        <button onclick="closeCampusModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="campusForm" onsubmit="handleCreateCampusSubmit(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Loại tin tức *</label>
+          <select id="campusType" required class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none">
+            <option value="ANNOUNCEMENT">Thông báo đào tạo & Lịch thi</option>
+            <option value="EVENT">Sự kiện & Hội thảo nhà trường</option>
+            <option value="SCHOLARSHIP">Học bổng sinh viên</option>
+            <option value="CLUB">Hoạt động Câu lạc bộ / Đoàn - Hội</option>
+            <option value="CAREER">Cơ hội việc làm & Thực tập doanh nghiệp</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Tiêu đề tin tức *</label>
+          <input type="text" id="campusTitle" required placeholder="Ví dụ: Lịch thi kết thúc học kỳ 1 năm học 2026" class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Nội dung chi tiết *</label>
+          <textarea id="campusContent" rows="4" required placeholder="Nội dung thông báo cụ thể..." class="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none"></textarea>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+          <button type="button" onclick="closeCampusModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl">Hủy</button>
+          <button type="submit" class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow">Đăng thông báo</button>
         </div>
       </form>
     </div>

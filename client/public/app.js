@@ -7,6 +7,10 @@ let authToken = localStorage.getItem('unilife_dau_token') || null;
 let socket = null;
 let currentTab = 'feed';
 let activeCategory = 'ALL';
+let activeScope = 'ALL';
+let activeQAStatus = 'ALL';
+let activeGroupStatus = 'ALL';
+let activeCampusType = 'ALL';
 let academicTree = null;
 
 // Khởi chạy ứng dụng
@@ -104,11 +108,16 @@ function populateSubjectDropdowns() {
   const uploadSub = document.getElementById('uploadSubject');
   const askSub = document.getElementById('askSubject');
   const grpSub = document.getElementById('grpSubject');
+  // Filter dropdowns cho QA và Groups
+  const qaSubFilter = document.getElementById('qaSubjectFilter');
+  const grpSubFilter = document.getElementById('grpSubjectFilter');
 
   if (docSubject) docSubject.innerHTML = `<option value="">Tất cả môn học</option>${options}`;
   if (uploadSub) uploadSub.innerHTML = options;
   if (askSub) askSub.innerHTML = options;
   if (grpSub) grpSub.innerHTML = options;
+  if (qaSubFilter) qaSubFilter.innerHTML = `<option value="">Tất cả môn</option>${options}`;
+  if (grpSubFilter) grpSubFilter.innerHTML = `<option value="">Tất cả môn</option>${options}`;
 }
 
 // ----------------------------------------------------
@@ -258,10 +267,114 @@ function updateUserHeader() {
   document.getElementById('sidebarClassInfo').textContent = `Lớp: ${currentUser.class_name || 'Admin'}`;
 
   const adminNav = document.getElementById('adminNavSection');
+  const adminCampusBtn = document.getElementById('adminAddCampusBtn');
   if (currentUser.role === 'ADMIN') {
     adminNav.classList.remove('hidden');
+    if (adminCampusBtn) adminCampusBtn.classList.remove('hidden');
   } else {
     adminNav.classList.add('hidden');
+    if (adminCampusBtn) adminCampusBtn.classList.add('hidden');
+  }
+}
+
+// ----------------------------------------------------
+// HỒ SƠ SINH VIÊN & ĐỔI MẬT KHẨU
+// ----------------------------------------------------
+function openProfileModal() {
+  if (!currentUser) return openAuthModal('login');
+  
+  document.getElementById('profFaculty').textContent = currentUser.faculty_name || 'ĐH Kiến Trúc Đà Nẵng';
+  document.getElementById('profCourse').textContent = currentUser.course_name || 'Khóa DAU';
+  document.getElementById('profClass').textContent = currentUser.class_name ? `Lớp ${currentUser.class_name}` : 'Quản trị viên';
+  document.getElementById('profCode').textContent = currentUser.student_code || 'ADMIN';
+  document.getElementById('profFullName').value = currentUser.full_name || '';
+  document.getElementById('profPhone').value = currentUser.phone || '';
+  document.getElementById('profBio').value = currentUser.bio || '';
+
+  toggleProfileTab('info');
+  document.getElementById('profileModal').classList.remove('hidden');
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.add('hidden');
+}
+
+function toggleProfileTab(tab) {
+  const isInfo = tab === 'info';
+  document.getElementById('profileInfoForm').classList.toggle('hidden', !isInfo);
+  document.getElementById('profilePasswordForm').classList.toggle('hidden', isInfo);
+
+  document.getElementById('profileTabInfoBtn').className = isInfo 
+    ? 'flex-1 py-2 rounded-lg bg-white text-orange-600 shadow-sm transition' 
+    : 'flex-1 py-2 rounded-lg text-slate-600 transition';
+  document.getElementById('profileTabPasswordBtn').className = !isInfo 
+    ? 'flex-1 py-2 rounded-lg bg-white text-orange-600 shadow-sm transition' 
+    : 'flex-1 py-2 rounded-lg text-slate-600 transition';
+}
+
+async function handleUpdateProfile(e) {
+  e.preventDefault();
+  const fullName = document.getElementById('profFullName').value.trim();
+  const phone = document.getElementById('profPhone').value.trim();
+  const bio = document.getElementById('profBio').value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ full_name: fullName, phone, bio })
+    });
+    const result = await res.json();
+    if (result.success) {
+      currentUser = result.data;
+      updateUserHeader();
+      showToast('Thành công', result.message, 'success');
+      closeProfileModal();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
+  }
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const oldPassword = document.getElementById('profOldPassword').value;
+  const newPassword = document.getElementById('profNewPassword').value;
+  const confirmPassword = document.getElementById('profConfirmPassword').value;
+
+  if (newPassword !== confirmPassword) {
+    showToast('Lỗi', 'Xác nhận mật khẩu mới không khớp!', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Thành công', result.message, 'success');
+      document.getElementById('profilePasswordForm').reset();
+      closeProfileModal();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi', 'Không thể đổi mật khẩu', 'error');
   }
 }
 
@@ -316,24 +429,42 @@ function switchTab(tab) {
 // ----------------------------------------------------
 // TAB 1: BẢNG TIN THÔNG MINH
 // ----------------------------------------------------
+function filterFeedScope(scope) {
+  activeScope = scope;
+  document.querySelectorAll('#feedScopeTabs .scope-pill').forEach(btn => {
+    btn.className = 'scope-pill px-2.5 py-1 rounded-md font-medium text-slate-600 hover:bg-slate-100';
+  });
+  if (event && event.target) {
+    event.target.className = 'scope-pill px-2.5 py-1 rounded-md font-bold bg-slate-800 text-white';
+  }
+  loadFeed();
+}
+
 async function loadFeed() {
   const container = document.getElementById('postsContainer');
   try {
-    const res = await fetch(`${API_BASE}/posts/feed?category=${activeCategory}`, {
+    let url = `${API_BASE}/posts/feed?category=${activeCategory}`;
+    if (activeScope && activeScope !== 'ALL') {
+      url += `&scope_type=${activeScope}`;
+    }
+
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await res.json();
     if (!result.success || !result.data || result.data.length === 0) {
-      container.innerHTML = `<div class="bg-white p-8 rounded-2xl border text-center text-slate-400">Chưa có bài viết nào trong bảng tin. Hãy đăng bài viết đầu tiên để trao đổi cùng các bạn sinh viên DAU!</div>`;
+      container.innerHTML = `<div class="bg-white p-8 rounded-2xl border text-center text-slate-400">Chưa có bài viết nào trong phạm vi này. Hãy đăng bài viết đầu tiên để trao đổi cùng các bạn sinh viên DAU!</div>`;
       return;
     }
 
     container.innerHTML = result.data.map(post => {
       const scopeBadge = post.scope_type === 'CLASS'
         ? `<span class="px-2 py-0.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-md text-[10px] font-bold"><i class="fa-solid fa-users mr-1"></i>Lớp: ${post.class_name || 'Của tôi'}</span>`
-        : (post.scope_type === 'FACULTY'
-          ? `<span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-[10px] font-bold"><i class="fa-solid fa-building-columns mr-1"></i>Toàn Khoa</span>`
-          : `<span class="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-md text-[10px] font-bold"><i class="fa-solid fa-school mr-1"></i>ĐH Kiến Trúc ĐN</span>`);
+        : (post.scope_type === 'COURSE'
+          ? `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-bold"><i class="fa-solid fa-graduation-cap mr-1"></i>Khóa DAU</span>`
+          : (post.scope_type === 'FACULTY'
+            ? `<span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-[10px] font-bold"><i class="fa-solid fa-building-columns mr-1"></i>Toàn Khoa</span>`
+            : `<span class="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-md text-[10px] font-bold"><i class="fa-solid fa-school mr-1"></i>ĐH Kiến Trúc ĐN</span>`));
 
       const catBadge = {
         'STUDY': '<span class="text-orange-600 font-semibold text-xs"><i class="fa-solid fa-compass-drafting mr-1"></i>Học tập & Đồ án</span>',
@@ -344,6 +475,18 @@ async function loadFeed() {
 
       const reactedClass = post.user_has_reacted > 0 ? 'text-red-500 font-bold' : 'text-slate-600';
       const heartIcon = post.user_has_reacted > 0 ? 'fa-solid fa-heart text-red-500' : 'fa-regular fa-heart';
+
+      const isAuthorOrAdmin = currentUser && (currentUser.user_id === post.author_id || currentUser.role === 'ADMIN');
+      const actionButtons = isAuthorOrAdmin ? `
+        <div class="flex items-center gap-1">
+          <button onclick="openEditPostModal('${post.post_id}')" title="Sửa bài viết" class="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition">
+            <i class="fa-solid fa-pen text-xs"></i>
+          </button>
+          <button onclick="deletePost('${post.post_id}')" title="Xóa bài viết" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+            <i class="fa-solid fa-trash text-xs"></i>
+          </button>
+        </div>
+      ` : '';
 
       return `
         <article class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3.5">
@@ -359,10 +502,13 @@ async function loadFeed() {
                 </div>
               </div>
             </div>
-            <div>${scopeBadge}</div>
+            <div class="flex items-center gap-2">
+              ${scopeBadge}
+              ${actionButtons}
+            </div>
           </div>
 
-          <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(post.content)}</div>
+          <div id="post-content-${post.post_id}" class="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(post.content)}</div>
 
           <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
             <div class="flex items-center gap-4">
@@ -375,7 +521,7 @@ async function loadFeed() {
                 <span>${post.comment_count || 0} Bình luận</span>
               </button>
             </div>
-            <button onclick="reportPost('${post.post_id}')" class="text-slate-400 hover:text-red-500 text-[11px]">
+            <button onclick="openReportModal('${post.post_id}', 'POST')" class="text-slate-400 hover:text-red-500 text-[11px]">
               <i class="fa-regular fa-flag mr-1"></i>Báo cáo
             </button>
           </div>
@@ -395,6 +541,124 @@ async function loadFeed() {
     }).join('');
   } catch (err) {
     console.error('Load feed error:', err);
+  }
+}
+
+function openEditPostModal(postId) {
+  const contentEl = document.getElementById(`post-content-${postId}`);
+  if (!contentEl) return;
+  document.getElementById('editPostId').value = postId;
+  document.getElementById('editPostContent').value = contentEl.innerText || contentEl.textContent;
+  document.getElementById('editPostModal').classList.remove('hidden');
+}
+
+function closeEditPostModal() {
+  document.getElementById('editPostModal').classList.add('hidden');
+}
+
+async function handleUpdatePostSubmit(e) {
+  e.preventDefault();
+  const postId = document.getElementById('editPostId').value;
+  const content = document.getElementById('editPostContent').value.trim();
+  const category = document.getElementById('editPostCategory').value;
+  const scope_type = document.getElementById('editPostScope').value;
+
+  try {
+    const res = await fetch(`${API_BASE}/posts/${postId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ content, category, scope_type })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Thành công', result.message, 'success');
+      closeEditPostModal();
+      loadFeed();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi', 'Không thể cập nhật bài viết', 'error');
+  }
+}
+
+async function deletePost(postId) {
+  if (!confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/posts/${postId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Đã xóa', result.message, 'success');
+      loadFeed();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi', 'Không thể xóa bài viết', 'error');
+  }
+}
+
+async function deleteComment(commentId, postId) {
+  if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/posts/comments/${commentId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Đã xóa', 'Đã xóa bình luận', 'success');
+      loadComments(postId);
+      loadFeed();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi', 'Không thể xóa bình luận', 'error');
+  }
+}
+
+function openReportModal(targetId, targetType = 'POST') {
+  if (!currentUser) return openAuthModal('login');
+  document.getElementById('reportTargetId').value = targetId;
+  document.getElementById('reportTargetType').value = targetType;
+  document.getElementById('reportModal').classList.remove('hidden');
+}
+
+function closeReportModal() {
+  document.getElementById('reportModal').classList.add('hidden');
+}
+
+async function handleSendReportSubmit(e) {
+  e.preventDefault();
+  const targetId = document.getElementById('reportTargetId').value;
+  const reason = document.getElementById('reportReasonSelect').value;
+  const description = document.getElementById('reportDescription').value.trim();
+
+  try {
+    const res = await fetch(`${API_BASE}/posts/${targetId}/report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ reason, description })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Báo cáo đã gửi', result.message, 'info');
+      closeReportModal();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi', 'Không thể gửi báo cáo', 'error');
   }
 }
 
@@ -459,19 +723,31 @@ async function loadComments(postId) {
     });
     const result = await res.json();
     if (!result.data || result.data.length === 0) {
-      listEl.innerHTML = `<div class="text-slate-400 italic">Chưa có bình luận nào.</div>`;
+      listEl.innerHTML = `<div class="text-slate-400 italic py-1">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</div>`;
       return;
     }
-    listEl.innerHTML = result.data.map(c => `
-      <div class="flex gap-2.5 bg-slate-50 p-2.5 rounded-xl">
-        <img src="${c.author_avatar}" class="w-6 h-6 rounded-full">
-        <div>
-          <span class="font-bold text-slate-800">${c.author_name}</span>
-          <span class="text-[10px] text-slate-400 ml-1.5">${new Date(c.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</span>
-          <div class="text-slate-700 mt-0.5">${escapeHtml(c.content)}</div>
+    listEl.innerHTML = result.data.map(c => {
+      const isAuthorOrAdmin = currentUser && (currentUser.user_id === c.author_id || currentUser.role === 'ADMIN');
+      const deleteBtn = isAuthorOrAdmin 
+        ? `<button onclick="deleteComment('${c.comment_id}', '${postId}')" class="text-slate-300 hover:text-red-500 ml-2" title="Xóa bình luận"><i class="fa-solid fa-xmark"></i></button>`
+        : '';
+
+      return `
+        <div class="flex gap-2.5 bg-slate-50 p-2.5 rounded-xl">
+          <img src="${c.author_avatar}" class="w-6 h-6 rounded-full shrink-0 mt-0.5">
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-800 text-[11px]">${c.author_name}</span>
+              <div class="flex items-center">
+                <span class="text-[10px] text-slate-400">${new Date(c.created_at).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</span>
+                ${deleteBtn}
+              </div>
+            </div>
+            <div class="text-slate-700 text-xs mt-0.5">${escapeHtml(c.content)}</div>
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   } catch (err) {
     listEl.innerHTML = 'Lỗi tải bình luận';
   }
@@ -514,24 +790,8 @@ function filterFeedCategory(category) {
   loadFeed();
 }
 
-async function reportPost(postId) {
-  if (!currentUser) return openAuthModal('login');
-  const reason = prompt('Nhập lý do bạn muốn báo cáo bài viết vi phạm:');
-  if (!reason) return;
-  try {
-    const res = await fetch(`${API_BASE}/posts/${postId}/report`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ reason })
-    });
-    const result = await res.json();
-    showToast('Đã gửi báo cáo', result.message, 'info');
-  } catch (err) {
-    console.error(err);
-  }
+function reportPost(postId) {
+  openReportModal('POST', postId);
 }
 
 // ----------------------------------------------------
@@ -541,9 +801,10 @@ async function loadDocuments() {
   const grid = document.getElementById('documentsGrid');
   const keyword = document.getElementById('docSearchInput')?.value || '';
   const subjectId = document.getElementById('docSubjectSelect')?.value || '';
+  const sortBy = document.getElementById('docSortSelect')?.value || 'NEWEST';
 
   try {
-    const res = await fetch(`${API_BASE}/documents?keyword=${encodeURIComponent(keyword)}&subject_id=${subjectId}`, {
+    const res = await fetch(`${API_BASE}/documents?keyword=${encodeURIComponent(keyword)}&subject_id=${subjectId}&sort=${sortBy}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await res.json();
@@ -555,6 +816,8 @@ async function loadDocuments() {
     grid.innerHTML = result.data.map(doc => {
       const typeBg = doc.file_type === 'PDF' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-blue-50 text-blue-600 border-blue-200';
       const lockBadge = doc.class_id ? `<span class="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[10px]"><i class="fa-solid fa-lock mr-1"></i>Lớp: ${doc.class_name || 'Riêng'}</span>` : '<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px]">Công khai DAU</span>';
+      const isOwner = currentUser && (doc.uploader_id === currentUser.user_id || currentUser.role === 'ADMIN');
+      const deleteBtn = isOwner ? `<button onclick="deleteDocument('${doc.document_id}')" class="px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] hover:bg-red-100 font-bold border border-red-200"><i class="fa-solid fa-trash mr-1"></i>Xóa</button>` : '';
 
       return `
         <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3 flex flex-col justify-between">
@@ -571,14 +834,19 @@ async function loadDocuments() {
               </div>
               ${lockBadge}
             </div>
-
             <p class="text-xs text-slate-600 mt-3 line-clamp-2">${escapeHtml(doc.description || 'Tài liệu môn học DAU')}</p>
           </div>
 
           <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <div class="flex items-center gap-3 text-slate-500">
+            <div class="flex items-center gap-2 text-slate-500 flex-wrap">
               <span><i class="fa-solid fa-download mr-1"></i>${doc.download_count}</span>
-              <span class="text-amber-500 font-semibold cursor-pointer" onclick="rateDoc('${doc.document_id}')"><i class="fa-solid fa-star mr-1"></i>${doc.avg_rating || 0}★</span>
+              <button onclick="openRateDocModal('${doc.document_id}')" class="text-amber-500 font-semibold hover:text-amber-600">
+                <i class="fa-solid fa-star mr-1"></i>${Number(doc.avg_rating || 0).toFixed(1)}★
+              </button>
+              <button onclick="viewDocRatings('${doc.document_id}')" class="text-slate-400 hover:text-slate-700 text-[10px]">
+                <i class="fa-regular fa-eye mr-1"></i>Đánh giá
+              </button>
+              ${deleteBtn}
             </div>
             <button onclick="downloadDocument('${doc.document_id}', '${escapeHtml(doc.file_name)}')" class="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition">
               <i class="fa-solid fa-arrow-down"></i> Tải về
@@ -590,6 +858,23 @@ async function loadDocuments() {
   } catch (err) {
     console.error('Load docs error:', err);
   }
+}
+
+async function deleteDocument(docId) {
+  if (!confirm('Bạn có chắc muốn xóa tài liệu này?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/documents/${docId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Đã xóa', 'Tài liệu đã được xóa thành công', 'success');
+      loadDocuments();
+    } else {
+      showToast('Lỗi', result.message, 'error');
+    }
+  } catch (err) { console.error(err); }
 }
 
 async function downloadDocument(docId, fileName) {
@@ -625,28 +910,74 @@ async function downloadDocument(docId, fileName) {
   }
 }
 
-async function rateDoc(docId) {
+// Mở modal đánh giá tài liệu
+function openRateDocModal(docId) {
   if (!currentUser) return openAuthModal('login');
-  const score = prompt('Đánh giá tài liệu này từ 1 đến 5 sao: (Ví dụ: 5)');
-  if (!score || isNaN(score) || score < 1 || score > 5) return;
+  document.getElementById('rateTargetDocId').value = docId;
+  document.getElementById('rateDocComment').value = '';
+  selectStar(5);
+  document.getElementById('rateDocModal').classList.remove('hidden');
+}
+function closeRateDocModal() { document.getElementById('rateDocModal').classList.add('hidden'); }
+
+function selectStar(n) {
+  document.getElementById('rateStarScore').value = n;
+  document.querySelectorAll('#starRatingSelector .star-btn').forEach((s, i) => {
+    s.style.color = i < n ? '#f59e0b' : '#d1d5db';
+  });
+}
+
+async function handleSendRateSubmit(e) {
+  e.preventDefault();
+  const docId = document.getElementById('rateTargetDocId').value;
+  const score = parseInt(document.getElementById('rateStarScore').value);
+  const comment = document.getElementById('rateDocComment').value.trim();
   try {
     const res = await fetch(`${API_BASE}/documents/${docId}/rate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
-      body: JSON.stringify({ score: parseInt(score) })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ score, comment })
     });
     const result = await res.json();
     if (result.success) {
       showToast('Cảm ơn', 'Đánh giá tài liệu thành công!', 'success');
+      closeRateDocModal();
       loadDocuments();
+    } else {
+      showToast('Lỗi', result.message, 'error');
     }
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
+
+async function viewDocRatings(docId) {
+  document.getElementById('docRatingsModal').classList.remove('hidden');
+  const container = document.getElementById('docRatingsContainer');
+  container.innerHTML = '<div class="text-center text-slate-400 py-4">Đang tải...</div>';
+  try {
+    const res = await fetch(`${API_BASE}/documents/${docId}/ratings`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (!result.success || !result.data || result.data.length === 0) {
+      container.innerHTML = '<div class="text-slate-400 text-center py-4">Chưa có đánh giá nào</div>';
+      return;
+    }
+    container.innerHTML = result.data.map(r => `
+      <div class="flex gap-2 p-2.5 bg-slate-50 rounded-xl">
+        <img src="${r.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=anon'}" class="w-7 h-7 rounded-full">
+        <div>
+          <b class="text-xs text-slate-800">${escapeHtml(r.full_name)}</b>
+          <span class="text-amber-500 text-xs ml-2">${'★'.repeat(r.score)}${'☆'.repeat(5 - r.score)}</span>
+          ${r.comment ? `<p class="text-[11px] text-slate-600 mt-0.5">${escapeHtml(r.comment)}</p>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) { console.error(err); }
+}
+function closeDocRatingsModal() { document.getElementById('docRatingsModal').classList.add('hidden'); }
+
+// Alias backward compat
+function rateDoc(docId) { openRateDocModal(docId); }
 
 function openUploadModal() {
   if (!currentUser) return openAuthModal('login');
@@ -696,10 +1027,31 @@ async function handleDocUpload(e) {
 // ----------------------------------------------------
 // TAB 3: HỎI ĐÁP Q&A
 // ----------------------------------------------------
+// Lọc Q&A theo trạng thái
+function filterQAStatus(status) {
+  activeQAStatus = status;
+  document.querySelectorAll('#qaFilterTabs button').forEach(btn => {
+    const isMatch = btn.getAttribute('onclick')?.includes(`'${status}'`);
+    if (isMatch) {
+      btn.className = 'qa-pill px-3 py-1.5 rounded-lg font-bold bg-amber-600 text-white';
+    } else {
+      btn.className = 'qa-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100';
+    }
+  });
+  loadQA();
+}
+
 async function loadQA() {
   const container = document.getElementById('qaListContainer');
+  const keyword = document.getElementById('qaSearchInput')?.value?.trim() || '';
+  const subjectId = document.getElementById('qaSubjectFilter')?.value || '';
+  const filterType = activeQAStatus !== 'ALL' ? activeQAStatus : '';
+
   try {
-    const res = await fetch(`${API_BASE}/qa/questions`, {
+    let url = `${API_BASE}/qa/questions?keyword=${encodeURIComponent(keyword)}&subject_id=${subjectId}`;
+    if (filterType) url += `&filter_type=${filterType}`;
+
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await res.json();
@@ -713,6 +1065,9 @@ async function loadQA() {
         ? `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-bold"><i class="fa-solid fa-check-circle mr-1"></i>Đã có đáp án đúng</span>`
         : `<span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px]">Đang chờ đáp án</span>`;
 
+      const isQOwner = currentUser && (q.author_id === currentUser.user_id || currentUser.role === 'ADMIN');
+      const deleteQBtn = isQOwner ? `<button onclick="deleteQuestion('${q.question_id}')" class="text-red-400 hover:text-red-600 text-xs ml-2" title="Xóa câu hỏi"><i class="fa-solid fa-trash"></i></button>` : '';
+
       return `
         <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3">
           <div class="flex items-start justify-between gap-3">
@@ -722,7 +1077,7 @@ async function loadQA() {
                 ${escapeHtml(q.title)}
               </h3>
             </div>
-            <div>${acceptedBadge}</div>
+            <div class="flex items-center gap-1">${acceptedBadge}${deleteQBtn}</div>
           </div>
 
           <p class="text-xs text-slate-600 line-clamp-3">${escapeHtml(q.content)}</p>
@@ -746,6 +1101,19 @@ async function loadQA() {
   }
 }
 
+async function deleteQuestion(questionId) {
+  if (!confirm('Xóa câu hỏi này?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/qa/questions/${questionId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) { showToast('Đã xóa', result.message, 'success'); loadQA(); }
+    else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
+}
+
 async function viewQuestionDetails(questionId) {
   const detailEl = document.getElementById(`qa-detail-${questionId}`);
   detailEl.classList.toggle('hidden');
@@ -763,9 +1131,11 @@ async function viewQuestionDetails(questionId) {
 
     let answersHtml = answers.map(ans => {
       const isAccepted = ans.is_accepted === 1;
+      const isAnsOwner = currentUser && (ans.author_id === currentUser.user_id || currentUser.role === 'ADMIN');
       const acceptBtn = (isAuthor && !isAccepted)
         ? `<button onclick="markAcceptedAnswer('${questionId}', '${ans.answer_id}')" class="px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[10px] hover:bg-emerald-100 font-bold">✓ Đánh dấu đúng</button>`
         : (isAccepted ? `<span class="px-2 py-0.5 bg-emerald-600 text-white rounded text-[10px] font-bold"><i class="fa-solid fa-check mr-1"></i>Đáp án đúng</span>` : '');
+      const deleteAnsBtn = isAnsOwner ? `<button onclick="deleteAnswer('${ans.answer_id}', '${questionId}')" class="text-red-400 hover:text-red-600 text-xs ml-1" title="Xóa câu trả lời"><i class="fa-solid fa-trash"></i></button>` : '';
 
       return `
         <div class="p-3 rounded-xl ${isAccepted ? 'bg-emerald-50/70 border border-emerald-200' : 'bg-slate-50 border border-slate-100'} space-y-2">
@@ -779,6 +1149,7 @@ async function viewQuestionDetails(questionId) {
                 ▲ Upvote (${ans.upvote_count || 0})
               </button>
               ${acceptBtn}
+              ${deleteAnsBtn}
             </div>
           </div>
           <div class="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(ans.content)}</div>
@@ -841,6 +1212,22 @@ async function voteAnswer(answerId, questionId) {
   }
 }
 
+async function deleteAnswer(answerId, questionId) {
+  if (!confirm('Xóa câu trả lời này?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/qa/answers/${answerId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Đã xóa', result.message, 'success');
+      viewQuestionDetails(questionId);
+      loadQA();
+    } else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
+}
+
 async function markAcceptedAnswer(questionId, answerId) {
   try {
     const res = await fetch(`${API_BASE}/qa/questions/${questionId}/accept-answer`, {
@@ -897,10 +1284,31 @@ async function handleAskQuestion(e) {
 // ----------------------------------------------------
 // TAB 4: TÌM BẠN & NHÓM HỌC TẬP
 // ----------------------------------------------------
+// Lọc nhóm học theo trạng thái
+function filterGroupStatus(status) {
+  activeGroupStatus = status;
+  document.querySelectorAll('#groupFilterTabs button').forEach(btn => {
+    const isMatch = btn.getAttribute('onclick')?.includes(`'${status}'`);
+    if (isMatch) {
+      btn.className = 'grp-pill px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white';
+    } else {
+      btn.className = 'grp-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100';
+    }
+  });
+  loadGroups();
+}
+
 async function loadGroups() {
   const grid = document.getElementById('groupsGrid');
+  const keyword = document.getElementById('grpSearchInput')?.value?.trim() || '';
+  const subjectId = document.getElementById('grpSubjectFilter')?.value || '';
+
   try {
-    const res = await fetch(`${API_BASE}/groups`, {
+    let url = `${API_BASE}/groups?keyword=${encodeURIComponent(keyword)}&subject_id=${subjectId}`;
+    if (activeGroupStatus === 'RECRUITING') url += '&recruiting=1';
+    if (activeGroupStatus === 'MINE') url += '&mine=1';
+
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await res.json();
@@ -950,7 +1358,12 @@ async function loadGroups() {
               <img src="${grp.leader_avatar}" class="w-6 h-6 rounded-full">
               <span class="text-slate-600">${grp.leader_name}</span>
             </div>
-            <div>${actionBtn}</div>
+            <div class="flex items-center gap-2">
+              ${actionBtn}
+              <button onclick="openGroupDetailModal('${grp.group_id}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold transition">
+                <i class="fa-solid fa-users mr-1"></i>Chi tiết
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -958,6 +1371,112 @@ async function loadGroups() {
   } catch (err) {
     console.error('Load groups error:', err);
   }
+}
+
+// Mở modal chi tiết nhóm học
+async function openGroupDetailModal(groupId) {
+  document.getElementById('groupDetailModal').classList.remove('hidden');
+  document.getElementById('grpMembersList').innerHTML = '<div class="text-center text-slate-400 py-2 text-xs">Đang tải...</div>';
+  try {
+    const res = await fetch(`${API_BASE}/groups/${groupId}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (!result.success) return;
+
+    const { group, members, pendingRequests } = result.data;
+    document.getElementById('grpModalTitle').textContent = group.name;
+    document.getElementById('grpModalSubject').textContent = group.subject_name;
+    document.getElementById('grpModalGoal').textContent = group.goal;
+    document.getElementById('grpModalSchedule').innerHTML = `<i class="fa-regular fa-clock mr-1"></i>${group.schedule}`;
+    document.getElementById('grpModalLocation').innerHTML = `<i class="fa-solid fa-location-dot mr-1"></i>${group.location}`;
+    document.getElementById('grpMembersCount').textContent = members.length;
+
+    document.getElementById('grpMembersList').innerHTML = members.map(m => `
+      <div class="flex items-center gap-2 py-1">
+        <img src="${m.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.user_id}" class="w-6 h-6 rounded-full">
+        <span class="text-xs font-semibold">${escapeHtml(m.full_name)}</span>
+        <span class="text-[10px] text-slate-400 ml-auto">${m.role === 'LEADER' ? '👑 Trưởng' : 'Thành viên'}</span>
+      </div>
+    `).join('');
+
+    const isLeader = currentUser && group.leader_id === currentUser.user_id;
+    const isMember = members.some(m => m.user_id === currentUser?.user_id);
+
+    const reqSection = document.getElementById('grpRequestsSection');
+    if (isLeader && pendingRequests && pendingRequests.length > 0) {
+      reqSection.classList.remove('hidden');
+      document.getElementById('grpRequestsList').innerHTML = pendingRequests.map(r => `
+        <div class="flex items-center gap-2 text-xs py-1">
+          <span class="font-semibold">${escapeHtml(r.full_name)}</span>
+          <span class="text-slate-400 flex-1 truncate">${escapeHtml(r.message || '')}</span>
+          <button onclick="approveJoinRequest(${r.request_id}, 'ACCEPTED')" class="px-2 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold">Duyệt</button>
+          <button onclick="approveJoinRequest(${r.request_id}, 'REJECTED')" class="px-2 py-1 bg-slate-200 text-slate-700 rounded-lg text-[10px]">Từ chối</button>
+        </div>
+      `).join('');
+    } else {
+      reqSection.classList.add('hidden');
+    }
+
+    const footer = document.getElementById('grpLeaveOrDeleteBtnContainer');
+    if (isLeader) {
+      footer.innerHTML = `<button onclick="disbandGroup('${groupId}')" class="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700">Giải tán nhóm</button>`;
+    } else if (isMember) {
+      footer.innerHTML = `<button onclick="leaveGroup('${groupId}')" class="px-3 py-1.5 bg-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-300">Rời nhóm</button>`;
+    } else {
+      footer.innerHTML = '';
+    }
+  } catch (err) { console.error(err); }
+}
+
+function closeGroupDetailModal() { document.getElementById('groupDetailModal').classList.add('hidden'); }
+
+async function approveJoinRequest(requestId, status) {
+  try {
+    const res = await fetch(`${API_BASE}/groups/requests/${requestId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ status })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Thành công', result.message, 'success');
+      closeGroupDetailModal();
+      loadGroups();
+    } else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
+}
+
+async function leaveGroup(groupId) {
+  if (!confirm('Bạn có chắc muốn rời nhóm này?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/groups/${groupId}/leave`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Đã rời nhóm', result.message, 'success');
+      closeGroupDetailModal();
+      loadGroups();
+    } else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
+}
+
+async function disbandGroup(groupId) {
+  if (!confirm('Giải tán nhóm học sẽ xóa tất cả thành viên. Tiếp tục?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/groups/${groupId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Đã giải tán', result.message, 'success');
+      closeGroupDetailModal();
+      loadGroups();
+    } else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
 }
 
 async function joinGroup(groupId, groupName) {
@@ -1023,10 +1542,27 @@ async function handleCreateGroup(e) {
 // ----------------------------------------------------
 // TAB 5: CAMPUS & ĐỜI SỐNG
 // ----------------------------------------------------
+// Lọc Campus theo loại
+function filterCampusType(type) {
+  activeCampusType = type;
+  document.querySelectorAll('#campusTypeTabs button').forEach(btn => {
+    const isMatch = btn.getAttribute('onclick')?.includes(`'${type}'`);
+    if (isMatch) {
+      btn.className = 'campus-pill px-3 py-1.5 rounded-lg font-bold bg-orange-600 text-white';
+    } else {
+      btn.className = 'campus-pill px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-slate-100';
+    }
+  });
+  loadCampus();
+}
+
 async function loadCampus() {
   const container = document.getElementById('campusListContainer');
   try {
-    const res = await fetch(`${API_BASE}/campus`, {
+    let url = `${API_BASE}/campus`;
+    if (activeCampusType !== 'ALL') url += `?type=${activeCampusType}`;
+
+    const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const result = await res.json();
@@ -1035,13 +1571,17 @@ async function loadCampus() {
       return;
     }
 
+    const isAdmin = currentUser?.role === 'ADMIN';
+
     container.innerHTML = result.data.map(item => {
       const typeMap = {
         'ANNOUNCEMENT': '<span class="px-2.5 py-1 bg-red-100 text-red-700 font-bold rounded-lg text-xs">Thông báo trường DAU</span>',
         'SCHOLARSHIP': '<span class="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-lg text-xs">Học bổng</span>',
         'EVENT': '<span class="px-2.5 py-1 bg-blue-100 text-blue-700 font-bold rounded-lg text-xs">Sự kiện</span>',
-        'JOB': '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs">Cơ hội việc làm</span>'
+        'JOB': '<span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-lg text-xs">Cơ hội việc làm</span>',
+        'CLUB': '<span class="px-2.5 py-1 bg-purple-100 text-purple-700 font-bold rounded-lg text-xs">CLB & Ngoại khóa</span>'
       };
+      const deleteAdminBtn = isAdmin ? `<button onclick="deleteCampusPost('${item.campus_id}')" class="px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] hover:bg-red-100 font-bold border border-red-200"><i class="fa-solid fa-trash mr-1"></i>Xóa</button>` : '';
 
       return `
         <article class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col md:flex-row">
@@ -1049,7 +1589,10 @@ async function loadCampus() {
           <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
             <div>
               <div class="flex items-center justify-between gap-3">
-                ${typeMap[item.type] || '<span class="px-2 py-0.5 bg-slate-100 rounded text-xs">Tin tức</span>'}
+                <div class="flex items-center gap-2">
+                  ${typeMap[item.type] || '<span class="px-2 py-0.5 bg-slate-100 rounded text-xs">Tin tức</span>'}
+                  ${deleteAdminBtn}
+                </div>
                 <span class="text-xs text-slate-400">${new Date(item.created_at).toLocaleDateString('vi-VN')}</span>
               </div>
               <h3 class="font-bold text-slate-800 text-base mt-2">${escapeHtml(item.title)}</h3>
@@ -1065,6 +1608,49 @@ async function loadCampus() {
   } catch (err) {
     console.error('Load campus error:', err);
   }
+}
+
+// Modal đăng tin Campus (Admin only)
+function openCampusModal() {
+  if (!currentUser || currentUser.role !== 'ADMIN') return;
+  document.getElementById('campusModal').classList.remove('hidden');
+}
+function closeCampusModal() { document.getElementById('campusModal').classList.add('hidden'); }
+
+async function handleCreateCampusSubmit(e) {
+  e.preventDefault();
+  const type = document.getElementById('campusType').value;
+  const title = document.getElementById('campusTitle').value.trim();
+  const content = document.getElementById('campusContent').value.trim();
+  if (!type || !title || !content) return showToast('Lỗi', 'Vui lòng điền đủ thông tin', 'error');
+  try {
+    const res = await fetch(`${API_BASE}/campus`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ type, title, content })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Thành công', result.message, 'success');
+      closeCampusModal();
+      document.getElementById('campusTitle').value = '';
+      document.getElementById('campusContent').value = '';
+      loadCampus();
+    } else showToast('Lỗi', result.message, 'error');
+  } catch (err) { showToast('Lỗi', err.message, 'error'); }
+}
+
+async function deleteCampusPost(campusId) {
+  if (!confirm('Xóa tin Campus này?')) return;
+  try {
+    const res = await fetch(`${API_BASE}/campus/${campusId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) { showToast('Đã xóa', result.message, 'success'); loadCampus(); }
+    else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
 }
 
 // ----------------------------------------------------
@@ -1096,30 +1682,77 @@ async function loadAdminDashboard() {
 
     if (!reports.success || reports.data.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400 italic">Không có nội dung nào bị báo cáo vi phạm.</td></tr>`;
-      return;
+    } else {
+      tbody.innerHTML = reports.data.map(r => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 font-semibold">${r.target_type}</td>
+          <td class="py-2.5 px-3 text-slate-700">${escapeHtml(r.reason)}</td>
+          <td class="py-2.5 px-3 text-slate-500">${r.reporter_name} (${r.reporter_code})</td>
+          <td class="py-2.5 px-3">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+              ${r.status}
+            </span>
+          </td>
+          <td class="py-2.5 px-3 text-right space-x-1">
+            ${r.status === 'PENDING' ? `
+              <button onclick="handleReportAction(${r.report_id}, 'HIDE_CONTENT')" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 font-bold">Ẩn bài</button>
+              <button onclick="handleReportAction(${r.report_id}, 'DISMISS')" class="px-2 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300">Bỏ qua</button>
+            ` : '<span class="text-slate-400">Đã giải quyết</span>'}
+          </td>
+        </tr>
+      `).join('');
     }
 
-    tbody.innerHTML = reports.data.map(r => `
-      <tr class="hover:bg-slate-50">
-        <td class="py-2.5 px-3 font-semibold">${r.target_type}</td>
-        <td class="py-2.5 px-3 text-slate-700">${escapeHtml(r.reason)}</td>
-        <td class="py-2.5 px-3 text-slate-500">${r.reporter_name} (${r.reporter_code})</td>
-        <td class="py-2.5 px-3">
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
-            ${r.status}
-          </span>
-        </td>
-        <td class="py-2.5 px-3 text-right space-x-1">
-          ${r.status === 'PENDING' ? `
-            <button onclick="handleReportAction(${r.report_id}, 'HIDE_CONTENT')" class="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 font-bold">Ẩn bài</button>
-            <button onclick="handleReportAction(${r.report_id}, 'DISMISS')" class="px-2 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300">Bỏ qua</button>
-          ` : '<span class="text-slate-400">Đã giải quyết</span>'}
-        </td>
-      </tr>
-    `).join('');
+    // Load bảng quản lý người dùng
+    await loadAdminUsers();
   } catch (err) {
     console.error('Load admin error:', err);
   }
+}
+
+async function loadAdminUsers() {
+  const tbody = document.getElementById('adminUsersTableBody');
+  if (!tbody) return;
+  try {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (!result.success || result.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-400">Chưa có sinh viên nào đăng ký</td></tr>';
+      return;
+    }
+    tbody.innerHTML = result.data.map(u => `
+      <tr class="hover:bg-slate-50 text-xs">
+        <td class="py-2.5 px-3 font-semibold">${escapeHtml(u.full_name)}</td>
+        <td class="py-2.5 px-3 text-slate-500">${u.student_code || '--'}</td>
+        <td class="py-2.5 px-3">${u.class_name || '--'}</td>
+        <td class="py-2.5 px-3">
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">${u.role}</span>
+        </td>
+        <td class="py-2.5 px-3">
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${u.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}">${u.status}</span>
+        </td>
+        <td class="py-2.5 px-3 text-right">
+          ${u.role !== 'ADMIN' ? `<button onclick="toggleUserLock('${u.user_id}', '${u.status}')" class="px-2 py-1 ${u.status === 'ACTIVE' ? 'bg-red-600' : 'bg-emerald-600'} text-white rounded text-[10px] font-bold">${u.status === 'ACTIVE' ? 'Khóa' : 'Mở khóa'}</button>` : '<span class="text-slate-400 text-[10px]">Admin</span>'}
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) { console.error('Load admin users error:', err); }
+}
+
+async function toggleUserLock(userId, currentStatus) {
+  try {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}/toggle-lock`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Thành công', result.message, 'success');
+      loadAdminDashboard();
+    } else showToast('Lỗi', result.message, 'error');
+  } catch (err) { console.error(err); }
 }
 
 async function handleReportAction(reportId, action) {

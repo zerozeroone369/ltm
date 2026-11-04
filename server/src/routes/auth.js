@@ -172,5 +172,83 @@ router.get('/me', authenticateToken, (req, res) => {
   });
 });
 
+// PUT /api/auth/profile - Cập nhật thông tin cá nhân
+router.put('/profile', authenticateToken, (req, res) => {
+  try {
+    const { full_name, phone, bio, avatar_url } = req.body;
+    const userId = req.user.userId || req.user.sub;
+
+    if (!full_name || !full_name.trim()) {
+      return res.status(400).json({ success: false, message: 'Họ và tên không được để trống' });
+    }
+
+    db.prepare(`
+      UPDATE users 
+      SET full_name = ?, phone = ?, bio = ?, avatar_url = COALESCE(?, avatar_url)
+      WHERE user_id = ?
+    `).run(full_name.trim(), phone || '', bio || '', avatar_url || null, userId);
+
+    const updatedUser = db.prepare(`
+      SELECT u.user_id, u.student_code, u.email, u.full_name, u.avatar_url, u.phone, u.bio, u.role, u.status, u.class_id,
+             c.name as class_name, cr.name as course_name, f.name as faculty_name, s.name as school_name
+      FROM users u
+      LEFT JOIN classes c ON u.class_id = c.class_id
+      LEFT JOIN courses cr ON c.course_id = cr.course_id
+      LEFT JOIN majors m ON cr.major_id = m.major_id
+      LEFT JOIN faculties f ON m.faculty_id = f.faculty_id
+      LEFT JOIN schools s ON f.school_id = s.school_id
+      WHERE u.user_id = ?
+    `).get(userId);
+
+    res.json({
+      success: true,
+      message: 'Cập nhật hồ sơ cá nhân thành công',
+      data: updatedUser
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi cập nhật hồ sơ cá nhân' });
+  }
+});
+
+// POST /api/auth/change-password - Đổi mật khẩu
+router.post('/change-password', authenticateToken, (req, res) => {
+  try {
+    const { old_password, new_password, confirm_password } = req.body;
+    const userId = req.user.userId || req.user.sub;
+
+    if (!old_password || !new_password) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập mật khẩu cũ và mật khẩu mới' });
+    }
+
+    if (new_password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu mới phải có tối thiểu 6 ký tự' });
+    }
+
+    if (confirm_password && new_password !== confirm_password) {
+      return res.status(400).json({ success: false, message: 'Xác nhận mật khẩu mới không khớp' });
+    }
+
+    const user = db.prepare('SELECT password_hash FROM users WHERE user_id = ?').get(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+
+    const isMatch = bcrypt.compareSync(old_password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, message: 'Mật khẩu hiện tại không chính xác' });
+    }
+
+    const newHash = bcrypt.hashSync(new_password, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE user_id = ?').run(newHash, userId);
+
+    res.json({
+      success: true,
+      message: 'Đổi mật khẩu thành công. Vui lòng ghi nhớ mật khẩu mới!'
+    });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi đổi mật khẩu' });
+  }
+});
+
 module.exports = router;
 

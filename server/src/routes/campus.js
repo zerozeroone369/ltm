@@ -48,5 +48,32 @@ router.post('/', authenticateToken, requireAdmin, (req, res) => {
   }
 });
 
+// PUT /api/campus/:id (Admin only)
+router.put('/:id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const { type, title, content, banner_url, start_time, end_time } = req.body;
+    db.prepare(`
+      UPDATE campus_posts 
+      SET type = COALESCE(?, type), title = COALESCE(?, title), content = COALESCE(?, content),
+          banner_url = COALESCE(?, banner_url), start_time = ?, end_time = ?
+      WHERE campus_id = ?
+    `).run(type || null, title || null, content || null, banner_url || null, start_time || null, end_time || null, req.params.id);
+
+    res.json({ success: true, message: 'Cập nhật tin Campus thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/campus/:id (Admin only)
+router.delete('/:id', authenticateToken, requireAdmin, (req, res) => {
+  try {
+    db.prepare('UPDATE campus_posts SET status = "DELETED" WHERE campus_id = ?').run(req.params.id);
+    res.json({ success: true, message: 'Đã xóa tin Campus thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 

@@ -107,5 +107,29 @@ router.patch('/users/:id/toggle-lock', (req, res) => {
   }
 });
 
+// GET /api/admin/structure - Thống kê cấu trúc đào tạo trường DAU
+router.get('/structure', (req, res) => {
+  try {
+    const totalFaculties = db.prepare('SELECT count(*) as count FROM faculties').get().count;
+    const totalMajors = db.prepare('SELECT count(*) as count FROM majors').get().count;
+    const totalCourses = db.prepare('SELECT count(*) as count FROM courses').get().count;
+    const totalClasses = db.prepare('SELECT count(*) as count FROM classes').get().count;
+    const totalSubjects = db.prepare('SELECT count(*) as count FROM subjects').get().count;
+
+    res.json({
+      success: true,
+      data: {
+        totalFaculties,
+        totalMajors,
+        totalCourses,
+        totalClasses,
+        totalSubjects
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 

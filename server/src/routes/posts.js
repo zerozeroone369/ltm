@@ -182,6 +182,80 @@ router.post('/:id/reactions', authenticateToken, (req, res) => {
   }
 });
 
+// PUT /api/posts/:id - Chỉnh sửa bài viết
+router.put('/:id', authenticateToken, (req, res) => {
+  try {
+    const { content, category, scope_type } = req.body;
+    const post = db.prepare('SELECT author_id FROM posts WHERE post_id = ?').get(req.params.id);
+
+    if (!post) return res.status(404).json({ success: false, message: 'Bài viết không tồn tại' });
+    if (post.author_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền chỉnh sửa bài viết này' });
+    }
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Nội dung bài viết không được để trống' });
+    }
+
+    db.prepare(`
+      UPDATE posts 
+      SET content = ?, category = COALESCE(?, category), scope_type = COALESCE(?, scope_type), updated_at = CURRENT_TIMESTAMP
+      WHERE post_id = ?
+    `).run(content.trim(), category || null, scope_type || null, req.params.id);
+
+    const updatedPost = db.prepare(`
+      SELECT p.*, u.full_name as author_name, u.avatar_url as author_avatar
+      FROM posts p JOIN users u ON p.author_id = u.user_id WHERE p.post_id = ?
+    `).get(req.params.id);
+
+    broadcastPostUpdate(req.params.id, { action: 'UPDATED', post: updatedPost });
+
+    res.json({ success: true, message: 'Chỉnh sửa bài viết thành công', data: updatedPost });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/posts/:id - Xóa bài viết của mình hoặc Admin
+router.delete('/:id', authenticateToken, (req, res) => {
+  try {
+    const post = db.prepare('SELECT author_id FROM posts WHERE post_id = ?').get(req.params.id);
+
+    if (!post) return res.status(404).json({ success: false, message: 'Bài viết không tồn tại' });
+    if (post.author_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa bài viết này' });
+    }
+
+    // Soft delete or remove
+    db.prepare('UPDATE posts SET status = "DELETED" WHERE post_id = ?').run(req.params.id);
+
+    broadcastPostUpdate(req.params.id, { action: 'DELETED' });
+
+    res.json({ success: true, message: 'Đã xóa bài viết thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/posts/comments/:commentId - Xóa bình luận
+router.delete('/comments/:commentId', authenticateToken, (req, res) => {
+  try {
+    const comment = db.prepare('SELECT author_id, post_id FROM comments WHERE comment_id = ?').get(req.params.commentId);
+    if (!comment) return res.status(404).json({ success: false, message: 'Bình luận không tồn tại' });
+
+    if (comment.author_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa bình luận này' });
+    }
+
+    db.prepare('DELETE FROM comments WHERE comment_id = ?').run(req.params.commentId);
+    db.prepare('UPDATE posts SET comment_count = MAX(0, comment_count - 1) WHERE post_id = ?').run(comment.post_id);
+
+    res.json({ success: true, message: 'Đã xóa bình luận' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // POST /api/posts/:id/report - Báo cáo vi phạm
 router.post('/:id/report', authenticateToken, (req, res) => {
   try {

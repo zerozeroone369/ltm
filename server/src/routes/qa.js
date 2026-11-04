@@ -8,7 +8,7 @@ const { sendNotification } = require('../realtime');
 // GET /api/qa/questions
 router.get('/questions', authenticateToken, (req, res) => {
   try {
-    const { subject_id, keyword } = req.query;
+    const { subject_id, keyword, filter_type } = req.query;
     let query = `
       SELECT q.*, u.full_name as author_name, u.avatar_url as author_avatar, s.name as subject_name,
              (SELECT count(*) FROM answers a WHERE a.question_id = q.question_id AND a.status = 'VISIBLE') as answer_count
@@ -26,6 +26,11 @@ router.get('/questions', authenticateToken, (req, res) => {
     if (keyword) {
       query += ` AND (q.title LIKE ? OR q.content LIKE ?)`;
       params.push(`%${keyword}%`, `%${keyword}%`);
+    }
+    if (filter_type === 'RESOLVED') {
+      query += ` AND q.accepted_answer_id IS NOT NULL`;
+    } else if (filter_type === 'UNRESOLVED') {
+      query += ` AND q.accepted_answer_id IS NULL`;
     }
 
     query += ` ORDER BY q.created_at DESC`;
@@ -205,6 +210,46 @@ router.patch('/questions/:id/accept-answer', authenticateToken, (req, res) => {
     }
 
     res.json({ success: true, message: 'Đã đánh dấu câu trả lời đúng thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/qa/questions/:id - Xóa câu hỏi (Người hỏi hoặc Admin)
+router.delete('/questions/:id', authenticateToken, (req, res) => {
+  try {
+    const q = db.prepare('SELECT author_id FROM questions WHERE question_id = ?').get(req.params.id);
+    if (!q) return res.status(404).json({ success: false, message: 'Câu hỏi không tồn tại' });
+
+    if (q.author_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa câu hỏi này' });
+    }
+
+    db.prepare('UPDATE questions SET status = "DELETED" WHERE question_id = ?').run(req.params.id);
+    res.json({ success: true, message: 'Đã xóa câu hỏi thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/qa/answers/:id - Xóa câu trả lời (Người trả lời hoặc Admin)
+router.delete('/answers/:id', authenticateToken, (req, res) => {
+  try {
+    const ans = db.prepare('SELECT author_id, question_id, is_accepted FROM answers WHERE answer_id = ?').get(req.params.id);
+    if (!ans) return res.status(404).json({ success: false, message: 'Câu trả lời không tồn tại' });
+
+    if (ans.author_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa câu trả lời này' });
+    }
+
+    db.prepare('UPDATE answers SET status = "DELETED" WHERE answer_id = ?').run(req.params.id);
+
+    // If it was accepted answer, clear it from question
+    if (ans.is_accepted) {
+      db.prepare('UPDATE questions SET accepted_answer_id = NULL WHERE question_id = ?').run(ans.question_id);
+    }
+
+    res.json({ success: true, message: 'Đã xóa câu trả lời' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

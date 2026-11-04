@@ -210,5 +210,53 @@ router.patch('/requests/:requestId', authenticateToken, (req, res) => {
   }
 });
 
+// DELETE /api/groups/:id/leave - Rời nhóm học
+router.delete('/:id/leave', authenticateToken, (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const userId = req.user.userId;
+
+    const group = db.prepare('SELECT * FROM study_groups WHERE group_id = ?').get(groupId);
+    if (!group) return res.status(404).json({ success: false, message: 'Nhóm học không tồn tại' });
+
+    if (group.leader_id === userId) {
+      return res.status(400).json({ success: false, message: 'Trưởng nhóm không thể tự rời nhóm. Bạn có thể giải tán nhóm hoặc xóa nhóm.' });
+    }
+
+    const member = db.prepare('SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?').get(groupId, userId);
+    if (!member) {
+      return res.status(400).json({ success: false, message: 'Bạn không phải là thành viên nhóm này' });
+    }
+
+    db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?').run(groupId, userId);
+    db.prepare('UPDATE study_groups SET current_members = MAX(1, current_members - 1) WHERE group_id = ?').run(groupId);
+
+    res.json({ success: true, message: 'Đã rời khỏi nhóm học thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/groups/:id - Giải tán / Xóa nhóm học (Trưởng nhóm hoặc Admin)
+router.delete('/:id', authenticateToken, (req, res) => {
+  try {
+    const groupId = req.params.id;
+    const group = db.prepare('SELECT leader_id FROM study_groups WHERE group_id = ?').get(groupId);
+    if (!group) return res.status(404).json({ success: false, message: 'Nhóm học không tồn tại' });
+
+    if (group.leader_id !== req.user.userId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: 'Chỉ trưởng nhóm hoặc Admin mới có quyền giải tán nhóm' });
+    }
+
+    db.prepare('DELETE FROM group_members WHERE group_id = ?').run(groupId);
+    db.prepare('DELETE FROM join_requests WHERE group_id = ?').run(groupId);
+    db.prepare('DELETE FROM study_groups WHERE group_id = ?').run(groupId);
+
+    res.json({ success: true, message: 'Đã giải tán nhóm học thành công' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 
