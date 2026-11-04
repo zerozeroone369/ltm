@@ -1,8 +1,11 @@
 {
   "name": "unilife-server",
   "version": "1.0.0",
-  "description": "Mạng xã hội đời sống sinh viên - Đồ án Lập trình mạng",
+  "description": "Mạng xã hội đời sống sinh viên DAU - Đồ án Lập trình mạng",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
