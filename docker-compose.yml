@@ -1,0 +1,14 @@
+services:
+  unilife-app:
+    build: .
+    container_name: unilife-social-network
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - JWT_SECRET=unilife_super_secret_jwt_key_2026_network_programming
+    volumes:
+      - ./server/database.sqlite:/app/server/database.sqlite
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+

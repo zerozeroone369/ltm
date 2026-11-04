@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables & secrets
+.env
+*.env.local
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploaded files
+uploads/documents/*
+!uploads/documents/.gitkeep
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
